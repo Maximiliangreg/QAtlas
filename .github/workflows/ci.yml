@@ -1,0 +1,49 @@
+name: QAtlas CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: End-to-end tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: qatlas/package-lock.json
+
+      - name: Install dependencies
+        working-directory: qatlas
+        run: npm ci
+
+      - name: Install Playwright browser
+        working-directory: qatlas
+        run: npx playwright install --with-deps chromium
+
+      - name: Type-check
+        working-directory: qatlas
+        run: npm run typecheck
+
+      - name: Run tests
+        working-directory: qatlas
+        run: npm test
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qatlas-playwright-report
+          path: qatlas/playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
